@@ -10,6 +10,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/chromedp"
+	"github.com/robfig/cron/v3"
 )
 
 type ChromeSession struct {
@@ -19,8 +20,22 @@ type ChromeSession struct {
 	cancelCtx      context.CancelFunc
 }
 
+type Item struct {
+	Link  string
+	Price string
+	Title string
+}
+
 func main() {
-	//urlToSearch := "https://es.wallapop.com/app/search?filters_source=quick_filters&keywords=%22remarkable%202%22&latitude=40.35155&longitude=-3.82448&min_sale_price=130&max_sale_price=400&order_by=newest"
+	c := cron.New()
+	_, _ = c.AddFunc("*/1 * * * *", runAnalysis)
+	c.Start()
+
+	select {}
+}
+
+func runAnalysis() {
+	fmt.Println("Executing analysis...")
 	urlToSearch := "https://es.wallapop.com/app/search?latitude=40.36660736519385&longitude=-3.763628939911825&keywords=Amazon%20kindle%20scribe&min_sale_price=200&max_sale_price=400&order_by=newest&country_code=ES&filters_source=stored_filters"
 
 	session := buildChromeSession()
@@ -66,12 +81,6 @@ func parseHTML(html string) ([]Item, error) {
 	})
 
 	return items, nil
-}
-
-type Item struct {
-	Link  string
-	Price string
-	Title string
 }
 
 func buildChromeSession() *ChromeSession {
