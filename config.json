@@ -1,0 +1,6 @@
+{
+  "urls": [
+    "https://es.wallapop.com/app/search?latitude=40.36660736519385&longitude=-3.763628939911825&keywords=Amazon%20kindle%20scribe&min_sale_price=200&max_sale_price=400&order_by=newest&country_code=ES&filters_source=stored_filters",
+    "https://es.wallapop.com/app/search?filters_source=quick_filters&keywords=%22remarkable%202%22&latitude=40.35155&longitude=-3.82448&min_sale_price=130&max_sale_price=400&order_by=newest"
+  ]
+}

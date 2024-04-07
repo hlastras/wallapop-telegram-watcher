@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -36,27 +38,53 @@ func main() {
 
 func runAnalysis() {
 	fmt.Println("Executing analysis...")
-	urlToSearch := "https://es.wallapop.com/app/search?latitude=40.36660736519385&longitude=-3.763628939911825&keywords=Amazon%20kindle%20scribe&min_sale_price=200&max_sale_price=400&order_by=newest&country_code=ES&filters_source=stored_filters"
+
+	// Load URLs from config.json
+	urls, err := loadURLsFromConfig()
+	if err != nil {
+		log.Fatalf("Failed to load URLs from config: %v", err)
+	}
 
 	session := buildChromeSession()
 
-	htmlContent, err := getUrlHTMLContent(session, urlToSearch)
+	for _, urlToSearch := range urls {
+		htmlContent, err := getUrlHTMLContent(session, urlToSearch)
+		if err != nil {
+			log.Printf("Failed to get HTML content for %s: %v", urlToSearch, err)
+			continue
+		}
+
+		regex := regexp.MustCompile(`<tsl-item-card-images-carousel[^>]*>([\s\S]*?)</tsl-item-card-images-carousel>`)
+
+		sanitizeHTML := regex.ReplaceAllString(htmlContent, "")
+		items, err := parseHTML(sanitizeHTML)
+		if err != nil {
+			log.Printf("Error parsing HTML for %s: %v", urlToSearch, err)
+			continue
+		}
+
+		for _, item := range items {
+			fmt.Printf("Link: %s\nPrice: %s\nTitle: %s\n\n", item.Link, item.Price, item.Title)
+		}
+		fmt.Println("Total items found for", urlToSearch, ":", len(items))
+	}
+}
+
+func loadURLsFromConfig() ([]string, error) {
+	file, err := os.Open("config.json")
 	if err != nil {
-		log.Fatalf("Failed to get HTML content: %v", err)
+		return nil, fmt.Errorf("error opening config file: %w", err)
+	}
+	defer file.Close()
+
+	var config struct {
+		URLs []string `json:"urls"`
+	}
+	if err := json.NewDecoder(file).Decode(&config); err != nil {
+		return nil, fmt.Errorf("error decoding config file: %w", err)
 	}
 
-	regex := regexp.MustCompile(`<tsl-item-card-images-carousel[^>]*>([\s\S]*?)</tsl-item-card-images-carousel>`)
-
-	sanitizeHTML := regex.ReplaceAllString(htmlContent, "")
-	items, err := parseHTML(sanitizeHTML)
-	if err != nil {
-		log.Fatalf("Error parsing HTML: %v", err)
-	}
-
-	for _, item := range items {
-		fmt.Printf("Link: %s\nPrice: %s\nTitle: %s\n\n", item.Link, item.Price, item.Title)
-	}
-	fmt.Println("Total items found:", len(items))
+	return config.URLs, nil
 }
 
 func parseHTML(html string) ([]Item, error) {
